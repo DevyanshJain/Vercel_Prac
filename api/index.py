@@ -1,17 +1,27 @@
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import json
 
-def handler(request, response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
+app = FastAPI()
 
-    if request.method != "GET":
-        return response.status(405).send("Only GET allowed.")
+# Enable CORS for all origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
-    names = request.query.getlist("name")
+@app.get("/")
+async def get_marks(request: Request):
+    # Get all 'name' query params (like ?name=X&name=Y)
+    names = request.query_params.getlist("name")
 
     with open("marks.json") as f:
         data = json.load(f)
 
-    data_dict = {d["name"]: d["marks"] for d in data}
-    result = [data_dict.get(n, None) for n in names]
+    data_dict = {item["name"]: item["marks"] for item in data}
+    result = [data_dict.get(name, None) for name in names]
 
-    return response.json({"marks": result})
+    return JSONResponse(content={"marks": result})
